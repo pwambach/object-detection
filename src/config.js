@@ -6,8 +6,6 @@ export const IMAGE_HEIGHT = 32;
 export const WHITE = 0;
 export const BLACK = 1;
 
-// model
-export const BATCH_SIZE = 100;
 
 // object types
 // export const TYPE_RECTANGLE = 1;

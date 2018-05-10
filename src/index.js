@@ -1,24 +1,31 @@
 import * as tf from '@tensorflow/tfjs';
-import {generateImages, logBytes} from './data/images';
-import {IMAGE_WIDTH, IMAGE_HEIGHT, BATCH_SIZE} from './config';
+import {IMAGE_WIDTH, IMAGE_HEIGHT} from './config';
 import {drawImage, drawBBox} from './lib/draw';
+import {getBatch} from './lib/get-batch';
 
 const canvas = document.getElementById('canvas');
 
-const ITERATIONS = 1000;
-const LEARNING_RATE = 0.11;
+const ITERATIONS = 10;
+const LEARNING_RATE = 0.001;
+const BATCH_SIZE = 10000;
 
+// genrate training and validation data
 let trainingBatch = getBatch(BATCH_SIZE);
-let validationBatch = getBatch(BATCH_SIZE * 10);
+let validationBatch = getBatch(BATCH_SIZE);
 
+// create model
 const model = tf.sequential();
 
 model.add(tf.layers.dense({
-  units: 200,
   inputDim: IMAGE_WIDTH * IMAGE_HEIGHT,
+  units: 200,
   kernelInitializer: 'VarianceScaling',
   activation: 'relu'
 }));
+
+// model.add(tf.layers.dropout({
+//   rate: 0.1
+// }));
 
 model.add(tf.layers.dense({
   units: 40,
@@ -32,18 +39,49 @@ model.add(tf.layers.dense({
   activation: 'relu'
 }));
 
-
-
-
 // Prepare the model for training: Specify the loss and the optimizer.
 model.compile({
   loss: 'meanSquaredError',
-  optimizer: tf.train.sgd(LEARNING_RATE),
+  optimizer: tf.train.adam(LEARNING_RATE),
   metrics: ['accuracy']
 });
 
-// Train the model using the data.
-const validationData = [validationBatch.features, validationBatch.labels];
+// add button listener
+document.getElementById('stopButton')
+  .addEventListener('click', () => {run = false});
+document.getElementById('startButton')
+  .addEventListener('click', () => train());
+document.getElementById('predictButton')
+  .addEventListener('click', () => predict());
+
+
+// model.add(tf.layers.conv2d({
+//   inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
+//   kernelSize: 8,
+//   filters: 2,
+//   strides: 1,
+//   activation: 'relu',
+//   kernelInitializer: 'VarianceScaling'
+// }));
+
+// model.add(tf.layers.conv2d({
+//   kernelSize: 6,
+//   filters: 8,
+//   strides: 2,
+//   activation: 'relu',
+//   kernelInitializer: 'VarianceScaling'
+// }));
+
+// model.add(tf.layers.flatten());
+
+// model.add(tf.layers.dense({
+//   units: 4,
+//   kernelInitializer: 'VarianceScaling',
+//   activation: 'relu'
+// }));
+
+
+
 let iterationCount = 0;
 let run = true;
 
@@ -54,21 +92,24 @@ function train() {
     {
       batchSize: BATCH_SIZE,
       validationData: [validationBatch.features, validationBatch.labels],
-      epochs: 1
+      epochs: 100,
+      callbacks: {
+        onEpochEnd: (epoch, logs) => console.log(epoch, logs)
+      }
     }).then(history => {
       iterationCount++;
 
-      console.log(iterationCount, history.history.acc, history.history.loss);
+      console.log(`${iterationCount} - accuracy: ${history.history.acc[0].toFixed(2)}\tloss: ${history.history.loss[0].toFixed(2)}`);
       
-      if (run && iterationCount < ITERATIONS) {
-        trainingBatch.features.dispose();
-        trainingBatch.labels.dispose();
-        trainingBatch = getBatch(BATCH_SIZE);
-        setTimeout(() => train(), 0);
-      } else {
+      // if (run && iterationCount < ITERATIONS) {
+      //   trainingBatch.features.dispose();
+      //   trainingBatch.labels.dispose();
+      //   trainingBatch = getBatch(BATCH_SIZE);
+      //   setTimeout(() => train(), 0);
+      // } else {
         console.log(history);
         console.log("Training finished!");
-      }
+      // }
     });
 }
 
@@ -79,45 +120,3 @@ function predict() {
   console.log(new Float32Array(origLabels[0]).map(x => x / 32), result);
   drawBBox(result, canvas, 0, 0, 'blue');
 }
-
-document.getElementById('stopButton')
-  .addEventListener('click', () => {run = false});
-document.getElementById('startButton')
-  .addEventListener('click', () => train());
-document.getElementById('predictButton')
-  .addEventListener('click', () => predict());
-
-function getBatch(num) {
-  const {images, labels} = generateImages(num);
-
-  const imageLength = IMAGE_WIDTH * IMAGE_HEIGHT;
-  const fullImageData = new Uint8Array(num * imageLength);
-  images.forEach((image, index) => {
-    fullImageData.set(image, index * imageLength);
-  });
-
-  const labelLength = labels[0].length
-  const fullLabelData = new Float32Array(num * labels[0].length);
-  labels.forEach((label, index) => {
-    fullLabelData.set(label, index * labels[0].length);
-  });
-
-  // normalize labels
-  for (let i = 0; i < fullLabelData.length; i++) {
-    if (i % 4 === 0 || i % 4 === 2) {
-      // x and width
-      fullLabelData[i] = fullLabelData[i] / IMAGE_WIDTH;
-    } else if (i % 4 === 1 || i % 4 === 3) {
-      // y and height
-      fullLabelData[i] = fullLabelData[i] / IMAGE_HEIGHT;
-    }
-  }
-
-  return {
-    features: tf.tensor2d(fullImageData, [num, imageLength]),
-    labels: tf.tensor2d(fullLabelData, [num, labelLength]),
-    origFeatures: images,
-    origLabels: labels
-  };
-}
-
