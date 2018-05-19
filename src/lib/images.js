@@ -18,7 +18,8 @@ export function generateImages(num) {
   const labels = [];
 
   for (let i = 0; i < num; i++) {
-    const {image, label} = getImageWithOneBlackRect();
+    // const {image, label} = getImageWithOneBlackRect();
+    const {image, label} = getImageWithTwoBlackRects();
     images.push(image);
     labels.push(label);
   }
@@ -60,6 +61,39 @@ function getImageWithOneBlackRect() {
   clear();
   const label = rectangle(x, y, w ,h, BLACK);
   const image = getBytes();
+
+  return {image, label};
+}
+
+function getImageWithTwoBlackRects() {
+  // RECT 1
+  let x1 = Math.floor(Math.random() * IMAGE_WIDTH);
+  let y1 = Math.floor(Math.random() * IMAGE_HEIGHT);
+  // check that rectangle is always completely in canvas
+  const w1 = Math.max(Math.floor(Math.random() * IMAGE_WIDTH / 2), 4);
+  const h1 = Math.max(Math.floor(Math.random() * IMAGE_HEIGHT / 2), 4);
+  x1 = Math.max(x1 - w1, 0);
+  y1 = Math.max(y1 - h1, 0);
+
+  // paint
+  clear();
+  const label1 = rectangle(x1, y1, w1 ,h1, BLACK);
+
+  // RECT 1
+  let x2 = Math.floor(Math.random() * IMAGE_WIDTH);
+  let y2 = Math.floor(Math.random() * IMAGE_HEIGHT);
+  // check that rectangle is always completely in canvas
+  const w2 = Math.max(Math.floor(Math.random() * IMAGE_WIDTH / 2), 4);
+  const h2 = Math.max(Math.floor(Math.random() * IMAGE_HEIGHT / 2), 4);
+  x2 = Math.max(x2 - w2, 0);
+  y2 = Math.max(y2 - h2, 0);
+
+  const label2 = rectangle(x2, y2, w2 ,h2, BLACK);
+  
+  const image = getBytes();
+  const label = new Uint8Array(label1.length + label2.length);
+  label.set(label1, 0);
+  label.set(label2, label1.length);
 
   return {image, label};
 }

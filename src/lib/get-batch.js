@@ -23,25 +23,24 @@ export function getBatch(num) {
   });
 
   const labelLength = labels[0].length
-  const fullLabelData = new Float32Array(num * labels[0].length);
+  const fullLabelData = new Float32Array(num * labelLength);
   labels.forEach((label, index) => {
-    fullLabelData.set(label, index * labels[0].length);
+    fullLabelData.set(label, index * labelLength);
   });
 
   // normalize labels
-  for (let i = 0; i < fullLabelData.length; i++) {
-    if (i % 4 === 0 || i % 4 === 2) {
-      // x and width
-      fullLabelData[i] = fullLabelData[i] / IMAGE_WIDTH;
-    } else if (i % 4 === 1 || i % 4 === 3) {
-      // y and height
-      fullLabelData[i] = fullLabelData[i] / IMAGE_HEIGHT;
-    }
-  }
+  // for (let i = 0; i < fullLabelData.length; i++) {
+  //   if (i % 4 === 0 || i % 4 === 2) {
+  //     // x and width
+  //     fullLabelData[i] = fullLabelData[i] / IMAGE_WIDTH;
+  //   } else if (i % 4 === 1 || i % 4 === 3) {
+  //     // y and height
+  //     fullLabelData[i] = fullLabelData[i] / IMAGE_HEIGHT;
+  //   }
+  // }
 
   return {
     features: tensor2d(fullImageData, [num, imageLength]),
-    // features: tf.tensor3d(fullImageData, [num, IMAGE_WIDTH, IMAGE_HEIGHT, 1]),
     labels: tensor2d(fullLabelData, [num, labelLength]),
     origFeatures: images,
     origLabels: labels

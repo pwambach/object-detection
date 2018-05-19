@@ -4,12 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+      .charts {display: flex}
+    </style>
   </head>
   <body>
     <canvas id="canvas" width="64" height="32"></canvas>
     <button id="startButton">start</button>
     <button id="stopButton">stop</button>
     <button id="predictButton">predict</button>
+
+    <div class="charts">
+      <div class="loss">
+        <div class="loss-vis"></div>
+        <div class="loss-label"></div>
+      </div>
+      <div class="accuracy">
+        <div class="accuracy-vis"></div>
+        <div class="accuracy-label"></div>
+      </div>
+    </div>
+
     <script src="src/index.js"></script>
   </body>
 </html>
