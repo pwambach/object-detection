@@ -91,7 +91,7 @@ function getImageWithTwoBlackRects() {
   const label2 = rectangle(x2, y2, w2 ,h2, BLACK);
   
   const image = getBytes();
-  const label = new Uint8Array(label1.length + label2.length);
+  const label = new Float32Array(label1.length + label2.length);
   label.set(label1, 0);
   label.set(label2, label1.length);
 
@@ -118,7 +118,12 @@ function rectangle(x, y, w, h, color) {
   context.fillStyle = `rgb(${color}, ${color}, ${color})`;
   context.fillRect(x, y, w, h);
 
-  return Uint8Array.from([x, y, w, h]);
+  return Float32Array.from([
+    x / IMAGE_WIDTH,
+    y / IMAGE_HEIGHT,
+    w / IMAGE_WIDTH,
+    h / IMAGE_HEIGHT
+  ]);
 }
 
 // function circle(x, y, r, color) {

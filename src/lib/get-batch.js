@@ -1,4 +1,4 @@
-import {tensor2d} from '@tensorflow/tfjs';
+import {tensor, tensor2d} from '@tensorflow/tfjs';
 import {generateImages} from './images';
 import {IMAGE_WIDTH, IMAGE_HEIGHT} from '../config';
 
@@ -40,9 +40,7 @@ export function getBatch(num) {
   // }
 
   return {
-    features: tensor2d(fullImageData, [num, imageLength]),
-    labels: tensor2d(fullLabelData, [num, labelLength]),
-    origFeatures: images,
-    origLabels: labels
+    features: tensor(fullImageData, [num, IMAGE_WIDTH, IMAGE_HEIGHT, 1]),
+    labels: tensor2d(fullLabelData, [num, labelLength])
   };
 }

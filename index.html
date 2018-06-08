@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <style>
-      .charts {display: flex}
+      .charts {display: flex; flex-wrap: wrap}
+      #canvas {height: 128px}
     </style>
   </head>
   <body>
@@ -22,6 +23,15 @@
       <div class="accuracy">
         <div class="accuracy-vis"></div>
         <div class="accuracy-label"></div>
+      </div>
+    
+      <div class="valLoss">
+        <div class="valLoss-vis"></div>
+        <div class="valLoss-label"></div>
+      </div>
+      <div class="valAccuracy">
+        <div class="valAccuracy-vis"></div>
+        <div class="valAccuracy-label"></div>
       </div>
     </div>
 

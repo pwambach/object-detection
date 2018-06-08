@@ -29,16 +29,30 @@ function setPixel(imageData, x, y, r, g, b, a) {
   imageData.data[index + 3] = a;
 }
 
-export function drawBBox(bbox, canvas, xOffset = 0, yOffset = 0, color = 'green') {
-  const x = bbox[0]; // * IMAGE_WIDTH;
-  const y = bbox[1]; // * IMAGE_HEIGHT;
-  const width = bbox[2]; // * IMAGE_WIDTH;
-  const height = bbox[3]; // * IMAGE_HEIGHT;
+export function drawBBox(bbox, canvas, xOffset = 0, yOffset = 0, color = 'green', fillColor = false) {
+  const x = bbox[0] * IMAGE_WIDTH;
+  const y = bbox[1] * IMAGE_HEIGHT;
+  const width = bbox[2] * IMAGE_WIDTH;
+  const height = bbox[3] * IMAGE_HEIGHT;
   const ctx = canvas.getContext('2d');
   ctx.beginPath();
   ctx.rect(x + xOffset, y + yOffset, width, height);
+
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+  }
+
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.closePath();
+}
+
+export function clear(canvas, width = IMAGE_WIDTH, height = IMAGE_HEIGHT, color = 'black', xOffset = 0, yOffset = 0) {
+  const ctx = canvas.getContext('2d');
+  ctx.beginPath();
+  ctx.rect(xOffset, yOffset, width, height);
+  ctx.fillStyle = color;
+  ctx.fill();
 }

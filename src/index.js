@@ -1,18 +1,18 @@
 import * as tf from '@tensorflow/tfjs';
 import {IMAGE_WIDTH, IMAGE_HEIGHT} from './config';
-import {drawImage, drawBBox} from './lib/draw';
+import {drawImage, drawBBox, clear} from './lib/draw';
 import {getBatch} from './lib/get-batch';
-import {plotAccuracies, plotLosses} from './lib/charts';
+import {plotAccuracies, plotLosses, plotValLosses, plotValAccuracies} from './lib/charts';
 
 const canvas = document.getElementById('canvas');
 
-const ITERATIONS = 200;
+const ITERATIONS = 1000;
 const LEARNING_RATE = 0.01;
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 5000;
 
 // genrate training and validation data
 let trainingBatch = getBatch(BATCH_SIZE);
-let validationBatch = getBatch(BATCH_SIZE * 10);
+let validationBatch = getBatch(BATCH_SIZE / 2);
 
 // create model
 const model = tf.sequential();
@@ -52,7 +52,11 @@ const model = tf.sequential();
 document.getElementById('stopButton')
   .addEventListener('click', () => {run = false});
 document.getElementById('startButton')
-  .addEventListener('click', () => {run = true; train()});
+  .addEventListener('click', () => {
+    run = true;
+    iterationCount = 0;
+    train();
+  });
 document.getElementById('predictButton')
   .addEventListener('click', () => predict());
 
@@ -60,7 +64,7 @@ document.getElementById('predictButton')
 model.add(tf.layers.conv2d({
   inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
   kernelSize: 4,
-  filters: 2,
+  filters: 1,
   strides: 1,
   activation: 'relu',
   kernelInitializer: 'VarianceScaling'
@@ -68,15 +72,7 @@ model.add(tf.layers.conv2d({
 
 model.add(tf.layers.conv2d({
   kernelSize: 4,
-  filters: 4,
-  strides: 2,
-  activation: 'relu',
-  kernelInitializer: 'VarianceScaling'
-}));
-
-model.add(tf.layers.conv2d({
-  kernelSize: 2,
-  filters: 8,
+  filters: 1,
   strides: 2,
   activation: 'relu',
   kernelInitializer: 'VarianceScaling'
@@ -85,17 +81,30 @@ model.add(tf.layers.conv2d({
 model.add(tf.layers.flatten());
 
 model.add(tf.layers.dense({
+  units: 100,
+  kernelInitializer: 'VarianceScaling',
+  activation: 'relu'
+}));
+
+model.add(tf.layers.dense({
   units: 8,
   kernelInitializer: 'VarianceScaling',
   activation: 'relu'
 }));
 
-
+// Prepare the model for training: Specify the loss and the optimizer.
+model.compile({
+  loss: 'meanSquaredError',
+  optimizer: tf.train.adam(LEARNING_RATE),
+  metrics: ['accuracy']
+});
 
 let iterationCount = 0;
 let run = true;
 let accuracyValues = [];
 let lossValues = [];
+let valAccuracyValues = [];
+let valLossValues = [];
 
 function train() {
   model.fit(
@@ -115,11 +124,19 @@ function train() {
         // plot charts
         const accuracy = history.history.acc[0];
         const loss = history.history.loss[0];
+        const valAcc = history.history.val_acc[0];
+        const valLoss = history.history.val_loss[0];
+
         accuracyValues.push({batch: iterationCount, accuracy, set: 'train'});
         plotAccuracies(accuracyValues);
         lossValues.push({batch: iterationCount, loss, set: 'train'});
         plotLosses(lossValues);
-        console.log(`${iterationCount} - accuracy: ${accuracy.toFixed(2)}\tloss: ${loss.toFixed(2)}`);
+
+        valAccuracyValues.push({batch: iterationCount, accuracy: valAcc, set: 'train'});
+        plotValAccuracies(valAccuracyValues);
+        valLossValues.push({batch: iterationCount, loss: valLoss, set: 'train'});
+        plotValLosses(valLossValues);
+        console.log(`${iterationCount} - accuracy: ${accuracy.toFixed(2)} (${valAcc})\tloss: ${loss.toFixed(5)} (${valLoss})`);
 
         // switch labels
         const newLabels = getSwitchedLabels(trainingBatch);
@@ -156,13 +173,12 @@ function getSwitchedLabels(trainingBatch) {
 
       const error1 = tf.metrics.meanSquaredError(label1, prediction).dataSync()[0];
       const error2 = tf.metrics.meanSquaredError(label2, prediction).dataSync()[0];
-      const switchedIsBetter = error2 < error1;
-  
+
+      let switchedIsBetter = error2 < error1;
+
       if (switchedIsBetter) {
         console.log("switched");
       }
-
-      // debugger;
 
       newLabels.push(switchedIsBetter ? label2 : label1);
     }
@@ -173,13 +189,51 @@ function getSwitchedLabels(trainingBatch) {
 
 function predict() {
   const {features, labels} = getBatch(1);
-  const featuresArray = features.dataSync().slice(0, BATCH_SIZE);
-  const labelsArray = labels.dataSync().slice(0, 8);
-  const result = model.predict(features).dataSync();
+  const featuresArray = features.dataSync();
+  const labelsArray = labels.dataSync();
+  const prediction = model.predict(features);
+  const result = prediction.dataSync();
 
-  drawImage(featuresArray, canvas);
-  drawBBox(result.slice(0, 4), canvas, 0, 0, 'blue');
-  drawBBox(result.slice(4, 8), canvas, 0, 0, 'green');
+  const realBbox1 = labelsArray.slice(0, 4);
+  const realBbox2 = labelsArray.slice(4);
+  const predictedBbox1 = result.slice(0, 4);
+  const predictedBbox2 = result.slice(4);
+
+  const pred = model.predict(validationBatch.features);
+  debugger;
+  console.log('MESE Validation', tf.metrics.meanSquaredError(validationBatch.labels, pred).dataSync()[0]);
+
+  const pred2 = model.predict(trainingBatch.features);
+  console.log('MESE Training', tf.metrics.meanSquaredError(trainingBatch.labels, pred2).dataSync()[0]);
+
+
+  // console.log('MSE 1:', tf.metrics.meanSquaredError(labels, prediction).dataSync()[0]);
+ 
+ 
+  // console.log('IOU 1: ', getIOU(realBbox1, predictedBbox1));
+  // console.log('IOU 2: ', getIOU(realBbox2, predictedBbox2));
+
+
+
+  const predictions = tf.split(model.predict(trainingBatch.features), BATCH_SIZE);
+  const singleLabels = tf.split(trainingBatch.labels, BATCH_SIZE);
+
+  const i = Math.floor(Math.random() * BATCH_SIZE);
+  const p = predictions[i].squeeze().dataSync();
+  const label1 = singleLabels[i].squeeze().dataSync();
+
+  clear(canvas);
+  drawBBox(label1.slice(0, 4), canvas, 0, 0, 'red', 'red');
+  drawBBox(label1.slice(4), canvas, 0, 0, 'red', 'red');
+  drawBBox(p.slice(0, 4), canvas, 0, 0, 'orange');
+  drawBBox(p.slice(4), canvas, 0, 0, 'yellow');
+
+  // debugger;
+
+
+  //drawImage(featuresArray, canvas);
+  drawBBox(predictedBbox1, canvas, 0, 0, 'blue');
+  drawBBox(predictedBbox2, canvas, 0, 0, 'green');
 }
 
 

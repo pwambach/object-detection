@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs": "^0.10.3",
+    "@tensorflow/tfjs": "^0.11.1",
     "parcel-bundler": "^1.7.1",
     "vega-embed": "^3.9.0"
   }
